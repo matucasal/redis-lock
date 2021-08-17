@@ -54,6 +54,36 @@ lock("myLock", function(done) {
 
 ``redis-lock`` is really simple to use - It's just a function!
 
+## Disabling retries
+Retries are very useful if you want all operations requesting the locks to eventually be executed and completed.
+
+But sometimes you only care about the first lock, and every subsequent attempt to acquire the same lock should just be dropped.
+
+You can do this by setting retryDelay timeout to 0:
+
+```javascript
+var client = require("redis").createClient(),
+	lock = require("redis-lock")(client, 0); // <-- disabling retries
+
+// since we disabled retries, a new parameter "error" is passed to the callback
+lock("myLock", function(err, done) {
+	if(!err){
+		// Simulate a 1 second long operation
+		setTimeout(done, 1000);
+	}
+});
+
+// this lock will fail
+lock("myLock", function(err, done) {
+	if(err && err.code == "ALREADY_LOCKED"){
+		// already locked!
+	}else{
+		done()
+	}
+});
+```
+
+
 ### Initialization
 
 To initialize redis-lock, simply call it by passing in a redis client instance, created by calling ``.createClient()`` on the excellent [node-redis](https://github.com/mranney/node_redis). This is taken in as a parameter because you might want to configure the client to suit your environment (host, port, etc.), and to enable you to reuse the client from your app if you want to.
